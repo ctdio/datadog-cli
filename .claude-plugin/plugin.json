@@ -1,11 +1,11 @@
 {
   "name": "datadog-cli",
   "version": "0.1.0",
-  "description": "Datadog CLI for AI agents - search logs, query metrics, and explore Datadog data",
+  "description": "Datadog CLI for debugging and triaging - search logs, tail in real-time, trace requests, analyze patterns, compare periods, and query metrics",
   "author": {
     "name": "charlieduong"
   },
   "repository": "https://github.com/charlieduong/datadog-cli",
   "license": "MIT",
-  "keywords": ["datadog", "logs", "metrics", "monitoring", "observability", "cli"]
+  "keywords": ["datadog", "logs", "metrics", "monitoring", "observability", "debugging", "triage", "cli"]
 }

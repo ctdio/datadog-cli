@@ -1,6 +1,7 @@
 {
-  "name": "datadog-cli",
+  "name": "@ctdio/datadog-cli",
   "version": "0.1.0",
+  "license": "MIT",
   "module": "cli.ts",
   "type": "module",
   "bin": {
