@@ -1,16 +1,41 @@
 {
   "name": "@ctdio/datadog-cli",
   "version": "0.1.0",
+  "description": "CLI tool for debugging and triaging with Datadog logs and metrics",
+  "author": "Charlie Duong",
   "license": "MIT",
+  "main": "cli.ts",
   "module": "cli.ts",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "datadog": "./cli.ts"
   },
+  "files": [
+    "cli.ts",
+    "lib"
+  ],
   "scripts": {
     "start": "bun run cli.ts",
     "dev": "bun --watch cli.ts",
     "build": "bun build --compile ./cli.ts --outfile dist/datadog"
+  },
+  "keywords": [
+    "datadog",
+    "cli",
+    "logs",
+    "metrics",
+    "debugging",
+    "observability"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ctdio/datadog-cli"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
   },
   "devDependencies": {
     "@types/bun": "latest"
