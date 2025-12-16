@@ -1,0 +1,14 @@
+{
+  "name": "ctdio-datadog",
+  "owner": {
+    "name": "ctdio"
+  },
+  "plugins": [
+    {
+      "name": "datadog-cli",
+      "source": "./",
+      "description": "Datadog CLI for debugging and triaging - search logs, tail in real-time, trace requests, analyze patterns, compare periods, and query metrics",
+      "version": "0.1.0"
+    }
+  ]
+}

@@ -1,6 +1,10 @@
 # datadog-cli
 
-A powerful CLI for debugging and triaging with Datadog logs and metrics. Designed for fast incident response and log exploration directly from your terminal.
+A CLI for querying Datadog logs and metrics from your terminal.
+
+## Why?
+
+I wanted a tool that Claude (and other AI assistants) could use to help investigate production issues. Figured I'd vibe my own because why not.
 
 ## Features
 
@@ -18,9 +22,36 @@ A powerful CLI for debugging and triaging with Datadog logs and metrics. Designe
 
 ## Installation
 
+Run directly without installing:
+
+```bash
+npx @ctdio/datadog-cli <command>
+# or
+bunx @ctdio/datadog-cli <command>
+```
+
+Or install locally:
+
 ```bash
 bun install
 ```
+
+## Claude Code Plugin
+
+Install as a [Claude Code](https://claude.ai/code) plugin to give Claude knowledge of the CLI:
+
+```bash
+# Add the marketplace (one-time)
+/plugin marketplace add ctdio/datadog-cli
+
+# Install the plugin
+/plugin install datadog-cli
+```
+
+Once installed, Claude can help you debug with Datadog:
+- "Search my Datadog logs for errors in the last hour"
+- "Compare error rates to the previous period"
+- "Why did the app crash at 1:30pm ET?"
 
 ## Setup
 

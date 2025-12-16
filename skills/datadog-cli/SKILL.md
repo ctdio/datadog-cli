@@ -15,6 +15,19 @@ A CLI tool for AI agents to debug and triage using Datadog logs and metrics.
 
 ## Setup
 
+### Running the CLI
+
+```bash
+# Via npx (no install needed)
+npx @ctdio/datadog-cli <command>
+
+# Via bunx
+bunx @ctdio/datadog-cli <command>
+
+# Or create an alias for convenience
+alias datadog="npx @ctdio/datadog-cli"
+```
+
 ### Environment Variables (Required)
 
 ```bash
@@ -28,7 +41,7 @@ Get keys from: https://app.datadoghq.com/organization-settings/api-keys
 
 Use `--site` flag:
 ```bash
-datadog logs search --query "*" --site datadoghq.eu
+npx @ctdio/datadog-cli logs search --query "*" --site datadoghq.eu
 ```
 
 ## Commands
