@@ -39,6 +39,12 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (args[0] === "--version" || args[0] === "-v") {
+    const pkg = await import("./package.json");
+    console.log(pkg.version);
+    return;
+  }
+
   const globalFlags = extractGlobalFlags(args);
   const filteredArgs = args.filter(
     (arg) => !arg.startsWith("--pretty") && !arg.startsWith("--site") && !arg.startsWith("--output")
