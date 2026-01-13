@@ -1,11 +1,11 @@
 {
   "name": "datadog-cli",
   "version": "0.1.0",
-  "description": "Datadog CLI for debugging and triaging - search logs, tail in real-time, trace requests, analyze patterns, compare periods, and query metrics",
+  "description": "Datadog CLI for debugging and triaging - search logs and APM traces, tail in real-time, trace requests, analyze patterns, compare periods, query metrics, and find slow spans",
   "author": {
     "name": "charlieduong"
   },
   "repository": "https://github.com/charlieduong/datadog-cli",
   "license": "MIT",
-  "keywords": ["datadog", "logs", "metrics", "monitoring", "observability", "debugging", "triage", "cli"]
+  "keywords": ["datadog", "logs", "metrics", "traces", "spans", "apm", "monitoring", "observability", "debugging", "triage", "cli"]
 }

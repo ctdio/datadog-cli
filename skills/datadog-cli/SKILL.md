@@ -11,7 +11,7 @@ description: |
 
 # Datadog CLI Reference
 
-A CLI tool for AI agents to debug and triage using Datadog logs and metrics.
+A CLI tool for AI agents to debug and triage using Datadog logs, metrics, and APM traces.
 
 ## Setup
 
@@ -196,6 +196,79 @@ datadog metrics query --query "avg:system.cpu.user{service:api}" --from 1h
 datadog metrics query --query "sum:trace.http.request.errors{service:api}.as_count()" --from 1h
 ```
 
+## APM Traces & Spans
+
+### Span Search
+
+Search APM spans/traces with query filters.
+
+```bash
+datadog spans search --query "<query>" [--from <time>] [--to <time>] [--limit <n>] [--min-duration <duration>]
+```
+
+**Examples:**
+```bash
+datadog spans search --query "env:prod service:api" --from 1h
+datadog spans search --query "service:api" --min-duration 1s --from 1h  # Slow requests
+datadog spans search --query "resource_name:POST" --from 1h
+```
+
+### Span Aggregation
+
+Aggregate spans by facet.
+
+```bash
+datadog spans agg --query "<query>" --facet <facet> [--from <time>]
+```
+
+**Common facets:** `service`, `resource_name`, `status`, `env`, `operation_name`
+
+**Examples:**
+```bash
+datadog spans agg --query "env:prod" --facet service --from 24h
+datadog spans agg --query "service:api" --facet resource_name --from 1h
+```
+
+### Trace Hierarchy View
+
+View all spans in a trace with parent-child relationships.
+
+```bash
+datadog spans trace --id "<trace-id>" [--from <time>]
+```
+
+**Example:**
+```bash
+datadog spans trace --id "abc123def456" --from 24h
+```
+
+### Span Error Summary
+
+Get breakdown of span errors by service and resource.
+
+```bash
+datadog spans errors [--from <time>] [--service <svc>]
+```
+
+**Examples:**
+```bash
+datadog spans errors --from 1h
+datadog spans errors --service api --from 24h
+```
+
+### APM Service Discovery
+
+List all services with APM trace activity.
+
+```bash
+datadog spans services [--from <time>]
+```
+
+**Example:**
+```bash
+datadog spans services --from 24h
+```
+
 ## Global Flags
 
 | Flag | Description |
@@ -214,8 +287,9 @@ datadog metrics query --query "sum:trace.http.request.errors{service:api}.as_cou
 ### Incident Triage
 
 ```bash
-# 1. Quick error overview
+# 1. Quick error overview (logs and spans)
 datadog errors --from 1h
+datadog spans errors --from 1h
 
 # 2. Is this new? Compare to previous period
 datadog logs compare --query "status:error" --period 1h
@@ -226,11 +300,15 @@ datadog logs patterns --query "status:error" --from 1h
 # 4. Narrow down by service
 datadog logs search --query "status:error service:payment-api" --from 1h
 
-# 5. Get context around a specific timestamp
+# 5. Find slow requests
+datadog spans search --query "service:api" --min-duration 1s --from 1h
+
+# 6. Get context around a specific timestamp
 datadog logs context --timestamp "2024-01-15T10:30:00Z" --service api --before 5m --after 2m
 
-# 6. Follow the distributed trace
+# 7. Follow the distributed trace (logs and spans)
 datadog logs trace --id "TRACE_ID"
+datadog spans trace --id "TRACE_ID"
 ```
 
 ### Real-time Debugging

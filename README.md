@@ -1,6 +1,6 @@
 # datadog-cli
 
-A CLI for querying Datadog logs and metrics from your terminal.
+A CLI for querying Datadog logs, metrics, and APM traces from your terminal.
 
 ## Why?
 
@@ -16,7 +16,9 @@ I wanted a tool that Claude (and other AI assistants) could use to help investig
 - **Period Comparison** - Compare log volumes between time periods
 - **Pattern Detection** - Group similar log messages
 - **Metrics Query** - Query timeseries metrics
-- **Service Discovery** - List all services with log activity
+- **APM Traces & Spans** - Search spans, view trace hierarchies, find slow requests
+- **Span Error Analysis** - Error breakdown by service and resource
+- **Service Discovery** - List all services with log/trace activity
 - **Export** - Save results to JSON files
 - **Pretty Output** - Color-coded, human-readable formatting
 
@@ -135,6 +137,29 @@ datadog services --from 24h --pretty
 datadog metrics query --query "avg:system.cpu.user{*}" --from 1h --pretty
 ```
 
+### APM Traces & Spans
+
+```bash
+# Search spans
+datadog spans search --query "env:prod service:api" --from 1h --pretty
+
+# Find slow requests (over 1 second)
+datadog spans search --query "service:api" --min-duration 1s --from 1h --pretty
+
+# Aggregate spans by facet
+datadog spans agg --query "env:prod" --facet service --from 24h --pretty
+
+# View trace hierarchy (parent-child relationships)
+datadog spans trace --id "abc123def456" --pretty
+
+# Span error summary
+datadog spans errors --from 1h --pretty
+datadog spans errors --service api --from 24h --pretty
+
+# List services with APM activity
+datadog spans services --from 24h --pretty
+```
+
 ### Export & Multi-query
 
 ```bash
@@ -171,6 +196,19 @@ datadog logs multi --queries "errors:status:error,warnings:status:warn" --from 1
 | `--from <time>` | Start time |
 | `--to <time>` | End time |
 
+### Spans Flags
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--query <query>` | Span search query (e.g., `env:prod service:api`) | `*` |
+| `--from <time>` | Start time | 15m |
+| `--to <time>` | End time | now |
+| `--limit <n>` | Max spans to return | 100 |
+| `--sort <order>` | `timestamp` or `-timestamp` | `-timestamp` |
+| `--min-duration <d>` | Filter slow spans (e.g., `100ms`, `1s`, `500us`) | - |
+| `--id <id>` | Trace ID (for `trace` command) | - |
+| `--facet <facet>` | Facet for aggregation | - |
+| `--service <svc>` | Filter by service (for `errors`) | - |
+
 ### Global Flags
 | Flag | Description |
 |------|-------------|
@@ -188,8 +226,9 @@ datadog logs multi --queries "errors:status:error,warnings:status:warn" --from 1
 ### Incident Triage Workflow
 
 ```bash
-# 1. Check error summary
+# 1. Check error summary (logs and spans)
 datadog errors --from 1h --pretty
+datadog spans errors --from 1h --pretty
 
 # 2. Compare to previous period
 datadog logs compare --query "status:error" --period 1h --pretty
@@ -200,11 +239,15 @@ datadog logs patterns --query "status:error" --from 1h --pretty
 # 4. Search specific errors
 datadog logs search --query "status:error service:api" --from 1h --pretty
 
-# 5. Get context around a timestamp
+# 5. Find slow requests
+datadog spans search --query "service:api" --min-duration 1s --from 1h --pretty
+
+# 6. Get context around a timestamp
 datadog logs context --timestamp "2024-01-15T10:30:00Z" --service api --before 5m --after 2m --pretty
 
-# 6. Follow the trace
+# 7. Follow the trace (logs and spans)
 datadog logs trace --id "TRACE_ID" --pretty
+datadog spans trace --id "TRACE_ID" --pretty
 ```
 
 ### Monitoring Workflow
