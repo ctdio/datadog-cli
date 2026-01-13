@@ -1,7 +1,7 @@
 {
   "name": "@ctdio/datadog-cli",
-  "version": "0.1.0",
-  "description": "CLI tool for debugging and triaging with Datadog logs and metrics",
+  "version": "0.2.0",
+  "description": "CLI tool for debugging and triaging with Datadog logs, metrics, and APM traces",
   "author": "Charlie Duong",
   "license": "MIT",
   "main": "cli.ts",

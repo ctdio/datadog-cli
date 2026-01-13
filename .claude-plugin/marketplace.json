@@ -7,8 +7,8 @@
     {
       "name": "datadog-cli",
       "source": "./",
-      "description": "Datadog CLI for debugging and triaging - search logs, tail in real-time, trace requests, analyze patterns, compare periods, and query metrics",
-      "version": "0.1.0"
+      "description": "Datadog CLI for debugging and triaging - search logs and APM traces, tail in real-time, trace requests, analyze patterns, compare periods, query metrics, and find slow spans",
+      "version": "0.2.0"
     }
   ]
 }

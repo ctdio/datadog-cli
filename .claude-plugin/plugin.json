@@ -1,6 +1,6 @@
 {
   "name": "datadog-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Datadog CLI for debugging and triaging - search logs and APM traces, tail in real-time, trace requests, analyze patterns, compare periods, query metrics, and find slow spans",
   "author": {
     "name": "charlieduong"
