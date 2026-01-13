@@ -15,6 +15,28 @@ interface NormalizedLog {
   attributes: Record<string, unknown>;
 }
 
+interface NormalizedSpan {
+  spanId: string;
+  traceId: string;
+  parentId?: string;
+  timestamp: string;
+  service?: string;
+  resourceName?: string;
+  operationName?: string;
+  duration?: number;
+  status?: string;
+  env?: string;
+  host?: string;
+  spanType?: string;
+  attributes: Record<string, unknown>;
+}
+
+interface TraceNode {
+  span: NormalizedSpan;
+  children: TraceNode[];
+  depth: number;
+}
+
 // ANSI color codes
 const colors = {
   reset: "\x1b[0m",
@@ -106,6 +128,18 @@ function formatPretty(data: unknown): string {
   }
   if (isSingleLog(data)) {
     return formatLogPretty(data as NormalizedLog);
+  }
+  if (isTraceHierarchyResult(data)) {
+    return formatTraceHierarchy(data as { spans: NormalizedSpan[]; tree: TraceNode[]; meta: { traceId: string; totalSpans: number; totalDuration?: number; timeRange: { from: string; to: string } } });
+  }
+  if (isSpanErrorSummary(data)) {
+    return formatSpanErrorSummary(data as { total: number; byService: Array<{ service: string; count: number }>; byResource: Array<{ resource: string; count: number }>; recentErrors: NormalizedSpan[]; meta: { timeRange: { from: string; to: string } } });
+  }
+  if (isSpanSearchResult(data)) {
+    return formatSpanSearchResult(data as { spans: NormalizedSpan[]; meta: { total: number; timeRange: { from: string; to: string } } });
+  }
+  if (isSingleSpan(data)) {
+    return formatSpanPretty(data as NormalizedSpan);
   }
   return JSON.stringify(data, null, 2);
 }
@@ -306,6 +340,112 @@ function formatMetricsResult(data: { series: Array<{ metric: string; scope: stri
   return lines.join("\n");
 }
 
+function formatSpanSearchResult(data: { spans: NormalizedSpan[]; meta: { total: number; timeRange: { from: string; to: string } } }): string {
+  const lines: string[] = [];
+  lines.push(`${colors.bold}Spans (${data.meta.total})${colors.reset} ${colors.dim}${formatTimeRange(data.meta.timeRange)}${colors.reset}`);
+  lines.push("");
+
+  for (const span of data.spans) {
+    lines.push(formatSpanPretty(span));
+  }
+
+  return lines.join("\n");
+}
+
+function formatSpanPretty(span: NormalizedSpan, indent = ""): string {
+  const ts = formatTimestamp(span.timestamp);
+  const status = formatSpanStatus(span.status);
+  const service = span.service ? `${colors.cyan}[${span.service}]${colors.reset}` : "";
+  const resource = span.resourceName ? `${colors.white}${truncateString(span.resourceName, 50)}${colors.reset}` : "";
+  const operation = span.operationName ? `${colors.magenta}${span.operationName}${colors.reset}` : "";
+  const spanType = span.spanType ? `${colors.blue}(${span.spanType})${colors.reset}` : "";
+  const duration = span.duration !== undefined ? `${colors.yellow}${formatDuration(span.duration)}${colors.reset}` : "";
+  const traceId = span.traceId ? `${colors.dim}trace:${span.traceId.slice(0, 8)}${colors.reset}` : "";
+
+  const parts = [ts, status, service, operation, spanType, duration, traceId].filter(Boolean);
+  return `${indent}${parts.join(" ")} ${resource}`;
+}
+
+function formatTraceHierarchy(data: { spans: NormalizedSpan[]; tree: TraceNode[]; meta: { traceId: string; totalSpans: number; totalDuration?: number; timeRange: { from: string; to: string } } }): string {
+  const lines: string[] = [];
+  const totalDuration = data.meta.totalDuration !== undefined ? formatDuration(data.meta.totalDuration) : "unknown";
+
+  lines.push(`${colors.bold}Trace: ${data.meta.traceId}${colors.reset}`);
+  lines.push(`${colors.dim}Spans: ${data.meta.totalSpans} | Duration: ${totalDuration} | ${formatTimeRange(data.meta.timeRange)}${colors.reset}`);
+  lines.push("");
+
+  function renderNode(node: TraceNode): void {
+    const indent = "  ".repeat(node.depth);
+    const connector = node.depth > 0 ? "├─ " : "";
+    lines.push(formatSpanPretty(node.span, indent + connector));
+    for (const child of node.children) {
+      renderNode(child);
+    }
+  }
+
+  for (const root of data.tree) {
+    renderNode(root);
+  }
+
+  return lines.join("\n");
+}
+
+function formatSpanErrorSummary(data: { total: number; byService: Array<{ service: string; count: number }>; byResource: Array<{ resource: string; count: number }>; recentErrors: NormalizedSpan[]; meta: { timeRange: { from: string; to: string } } }): string {
+  const lines: string[] = [];
+  lines.push(`${colors.bold}${colors.red}Span Error Summary${colors.reset} ${colors.dim}${formatTimeRange(data.meta.timeRange)}${colors.reset}`);
+  lines.push(`${colors.bold}Total Errors: ${data.total}${colors.reset}`);
+  lines.push("");
+
+  if (data.byService.length > 0) {
+    lines.push(`${colors.bold}By Service:${colors.reset}`);
+    for (const item of data.byService.slice(0, 10)) {
+      lines.push(`  ${colors.cyan}${item.service}${colors.reset}: ${item.count}`);
+    }
+    lines.push("");
+  }
+
+  if (data.byResource.length > 0) {
+    lines.push(`${colors.bold}By Resource:${colors.reset}`);
+    for (const item of data.byResource.slice(0, 10)) {
+      lines.push(`  ${colors.yellow}${truncateString(item.resource, 60)}${colors.reset}: ${item.count}`);
+    }
+    lines.push("");
+  }
+
+  if (data.recentErrors.length > 0) {
+    lines.push(`${colors.bold}Recent Errors:${colors.reset}`);
+    for (const span of data.recentErrors.slice(0, 10)) {
+      lines.push(formatSpanPretty(span, "  "));
+    }
+  }
+
+  return lines.join("\n");
+}
+
+function formatSpanStatus(status?: string): string {
+  if (!status) return "";
+  switch (status.toLowerCase()) {
+    case "error":
+      return `${colors.bgRed}${colors.white} ERR ${colors.reset}`;
+    case "ok":
+      return `${colors.bgGreen}${colors.white} OK  ${colors.reset}`;
+    default:
+      return `${colors.dim}[${status}]${colors.reset}`;
+  }
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1) return `${(ms * 1000).toFixed(0)}µs`;
+  if (ms < 1000) return `${ms.toFixed(1)}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(2)}s`;
+  return `${(ms / 60000).toFixed(2)}m`;
+}
+
+function truncateString(str: string, maxLen: number): string {
+  if (str.length <= maxLen) return str;
+  return str.slice(0, maxLen - 3) + "...";
+}
+
 function formatTimeRange(range: { from: string; to: string }): string {
   const from = new Date(range.from);
   const to = new Date(range.to);
@@ -367,4 +507,20 @@ function isMetricsResult(data: unknown): boolean {
 
 function isSingleLog(data: unknown): boolean {
   return typeof data === "object" && data !== null && "id" in data && "timestamp" in data && "attributes" in data && !("logs" in data);
+}
+
+function isSpanSearchResult(data: unknown): boolean {
+  return typeof data === "object" && data !== null && "spans" in data && "meta" in data && Array.isArray((data as { spans: unknown }).spans);
+}
+
+function isSingleSpan(data: unknown): boolean {
+  return typeof data === "object" && data !== null && "spanId" in data && "traceId" in data && !("spans" in data);
+}
+
+function isTraceHierarchyResult(data: unknown): boolean {
+  return typeof data === "object" && data !== null && "tree" in data && "spans" in data && "meta" in data && typeof (data as { meta: { traceId?: string } }).meta?.traceId === "string";
+}
+
+function isSpanErrorSummary(data: unknown): boolean {
+  return typeof data === "object" && data !== null && "byService" in data && "byResource" in data && "recentErrors" in data;
 }

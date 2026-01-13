@@ -14,6 +14,13 @@ import {
   multiQuery,
 } from "./lib/logs";
 import { queryMetrics } from "./lib/metrics";
+import {
+  searchSpans,
+  aggregateSpans,
+  listSpanServices,
+  getSpanErrors,
+  getTraceHierarchy,
+} from "./lib/spans";
 import { printOutput, printError, printStreamingLog, writeToFile } from "./lib/output";
 
 // Types
@@ -53,6 +60,8 @@ async function main(): Promise<void> {
       await handleLogsCommand(clients, subcommand ?? "", rest, globalFlags);
     } else if (command === "metrics") {
       await handleMetricsCommand(clients, subcommand ?? "", rest, globalFlags);
+    } else if (command === "spans" || command === "traces") {
+      await handleSpansCommand(clients, subcommand ?? "", rest, globalFlags);
     } else if (command === "errors") {
       await handleErrorsCommand(clients, rest, globalFlags);
     } else if (command === "services") {
@@ -223,6 +232,84 @@ async function handleMetricsCommand(
   }
 }
 
+async function handleSpansCommand(
+  clients: ReturnType<typeof createClients>,
+  subcommand: string,
+  args: string[],
+  flags: GlobalFlags
+): Promise<void> {
+  const parsed = parseArgs(args);
+
+  switch (subcommand) {
+    case "search": {
+      const result = await searchSpans(clients.spansApi, {
+        query: parsed.query ?? "*",
+        from: parsed.from,
+        to: parsed.to,
+        limit: parsed.limit ? parseInt(parsed.limit, 10) : undefined,
+        sort: parsed.sort as "timestamp" | "-timestamp" | undefined,
+        minDuration: parsed["min-duration"],
+      });
+      await outputResult(result, flags);
+      break;
+    }
+    case "agg": {
+      const facet = parsed.facet;
+      if (!facet) {
+        printError({ error: "Missing required --facet flag" }, flags);
+        return;
+      }
+      const result = await aggregateSpans(clients.spansApi, {
+        query: parsed.query ?? "*",
+        facet,
+        from: parsed.from,
+        to: parsed.to,
+      });
+      await outputResult(result, flags);
+      break;
+    }
+    case "trace": {
+      const traceId = parsed.id ?? parsed.trace;
+      if (!traceId) {
+        printError({ error: "Missing required --id or --trace flag" }, flags);
+        return;
+      }
+      // Use hierarchy view for better visualization
+      const result = await getTraceHierarchy(clients.spansApi, traceId, {
+        from: parsed.from,
+        to: parsed.to,
+      });
+      await outputResult(result, flags);
+      break;
+    }
+    case "errors": {
+      const result = await getSpanErrors(clients.spansApi, {
+        from: parsed.from,
+        to: parsed.to,
+        service: parsed.service,
+      });
+      await outputResult(result, flags);
+      break;
+    }
+    case "services": {
+      const result = await listSpanServices(clients.spansApi, {
+        from: parsed.from,
+        to: parsed.to,
+      });
+      await outputResult(result, flags);
+      break;
+    }
+    default:
+      printError(
+        {
+          error: `Unknown spans subcommand: ${subcommand}`,
+          help: "Available: search, agg, trace, errors, services",
+        },
+        flags
+      );
+  }
+}
+
 async function handleErrorsCommand(
   clients: ReturnType<typeof createClients>,
   args: string[],
@@ -276,6 +363,13 @@ COMMANDS:
 
   metrics query    Query timeseries metrics
 
+  spans search     Search APM traces/spans with query filters
+  spans agg        Aggregate spans by a facet
+  spans trace      Find all spans for a trace ID (hierarchical view)
+  spans errors     Quick error span summary
+  spans services   List all services with APM trace activity
+  (alias: traces)
+
   errors           Quick error summary (alias for logs with status:error)
   services         List all services with log activity
 
@@ -299,6 +393,17 @@ METRICS FLAGS:
   --query <query>     Metrics query (e.g., "avg:system.cpu.user{service:api}")
   --from <time>       Start time
   --to <time>         End time
+
+SPANS FLAGS:
+  --query <query>     Span search query (e.g., "env:prod service:api resource_name:GET /users")
+  --from <time>       Start time (e.g., "1h", "30m", "7d", or ISO timestamp)
+  --to <time>         End time (default: now)
+  --limit <n>         Maximum spans to return (default: 100, max: 1000)
+  --sort <order>      Sort order: "timestamp" or "-timestamp" (default: "-timestamp")
+  --min-duration <d>  Filter spans slower than duration (e.g., "100ms", "1s", "500us")
+  --id <id>           Trace ID (for 'trace' command)
+  --facet <facet>     Facet to aggregate by (for 'agg' command)
+  --service <svc>     Filter by service (for 'errors' command)
 
 GLOBAL FLAGS:
   --pretty            Human-readable output with colors (default: JSON)
@@ -337,6 +442,16 @@ EXAMPLES:
 
   # Multiple queries at once
   datadog logs multi --queries "errors:status:error,warnings:status:warn" --from 1h --pretty
+
+  # APM traces/spans
+  datadog spans search --query "env:prod service:api" --from 1h --pretty
+  datadog spans search --query "resource_name:conductor1.my.salesforce.com:443" --from 1h --pretty
+  datadog spans search --query "service:api" --min-duration 1s --from 1h --pretty  # Slow spans
+  datadog spans agg --query "env:prod" --facet service --from 24h --pretty
+  datadog spans trace --id "abc123def456" --pretty  # Hierarchical trace view
+  datadog spans errors --from 1h --pretty  # Error span summary
+  datadog spans errors --service api --from 24h --pretty
+  datadog spans services --from 24h --pretty
 `);
 }
 

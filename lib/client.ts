@@ -4,6 +4,7 @@ import { client, v1, v2 } from "@datadog/datadog-api-client";
 interface DatadogClients {
   logsApi: v2.LogsApi;
   metricsApi: v1.MetricsApi;
+  spansApi: v2.SpansApi;
 }
 
 // Main exports
@@ -22,6 +23,7 @@ export function createClients(site?: string): DatadogClients {
   return {
     logsApi: new v2.LogsApi(configuration),
     metricsApi: new v1.MetricsApi(configuration),
+    spansApi: new v2.SpansApi(configuration),
   };
 }
 
